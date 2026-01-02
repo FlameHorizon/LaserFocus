@@ -1,7 +1,57 @@
 ﻿@page "/"
 
+@rendermode InteractiveServer
+
+@using Microsoft.Data.Sqlite
+
 <PageTitle>Home</PageTitle>
 
 <h1>Hello, world!</h1>
 
 Welcome to your new app.
+
+<ul>
+@foreach(var name in _names) {
+  <li>@name</li>
+}
+</ul>
+
+@code {
+  List<string> _names = [];
+
+  protected override void OnAfterRender(bool firstRender) {
+    if (firstRender) {
+      Console.WriteLine("Calling OnAfterRender");
+      var dbPath = Path.Combine(
+        AppContext.BaseDirectory,
+        "data",
+        "app.db"
+      );
+
+      var connectionString = $"Data Source={dbPath}";
+
+      using var connection = new SqliteConnection(connectionString);
+      connection.Open();
+
+      var command = connection.CreateCommand();
+      command.CommandText =
+      @"
+          SELECT Name
+          FROM Items
+          LIMIT 1;
+      ";
+
+      using var reader = command.ExecuteReader();
+      int count = 0;
+      if (reader.Read())
+      {
+        _names.Add(reader.GetString(0));
+        count ++;
+      } 
+
+      Console.WriteLine($"Found {count} record(s).");
+
+      StateHasChanged();
+    }
+  }
+}
