@@ -2,11 +2,19 @@
 
 @rendermode InteractiveServer
 
-@using Microsoft.Data.Sqlite
+@using Website.Data
+@using Microsoft.EntityFrameworkCore
+
+@inject IDbContextFactory<AppDbContext> DbContextFactory
 
 <PageTitle>Home</PageTitle>
 
 <h1>Hello, world and Maciej!</h1>
+
+<EditForm Model="_model" OnValidSubmit="Submit" FormName="Form1">
+  <InputText @bind-Value="_model!.Value"/>
+  <button type="submit">Submit</button>
+</EditForm>
 
 Welcome to your new app.
 
@@ -17,40 +25,38 @@ Welcome to your new app.
 </ul>
 
 @code {
+
+  private class Model {
+      public string Value { get; set; } = "";
+  }
+
+  [SupplyParameterFromForm]
+  private Model? _model { get; set; }
+
   List<string> _names = [];
 
-  protected override void OnAfterRender(bool firstRender) {
+  protected override void OnInitialized() {
+    if (_model is null) {
+      _model = new Model();
+    }
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender) {
     if (firstRender) {
-      Console.WriteLine("Calling OnAfterRender");
-      var dbPath = Path.Combine(
-        AppContext.BaseDirectory,
-        "data",
-        "app.db"
-      );
+      await using var db = await DbContextFactory.CreateDbContextAsync();
 
-      var connectionString = $"Data Source={dbPath}";
+      _names = await db.Rides
+        .AsNoTracking()
+        .Select(x => x.Name)
+        .ToListAsync();
 
-      using var connection = new SqliteConnection(connectionString);
-      connection.Open();
-
-      var command = connection.CreateCommand();
-      command.CommandText =
-      @"
-          SELECT Name
-          FROM Items;
-      ";
-
-      using var reader = command.ExecuteReader();
-      int count = 0;
-      if (reader.Read())
-      {
-        _names.Add(reader.GetString(0));
-        count++;
-      } 
-
-      Console.WriteLine($"Found {count} record(s).");
+      Console.WriteLine($"Found {_names.Count} item(s).");
 
       StateHasChanged();
     }
+  }
+
+  private void Submit() {
+    Console.WriteLine("Form submit.");
   }
 }
