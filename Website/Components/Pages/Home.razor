@@ -37,8 +37,7 @@ Welcome to your new app.
       command.CommandText =
       @"
           SELECT Name
-          FROM Items
-          LIMIT 1;
+          FROM Items;
       ";
 
       using var reader = command.ExecuteReader();
@@ -46,7 +45,7 @@ Welcome to your new app.
       if (reader.Read())
       {
         _names.Add(reader.GetString(0));
-        count ++;
+        count++;
       } 
 
       Console.WriteLine($"Found {count} record(s).");
